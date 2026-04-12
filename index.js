@@ -25,8 +25,16 @@ const { obtenerSiguienteOrden, insertarEnCola } = require("./motor/motor");
 
 const { createClient } = require("@supabase/supabase-js");
 
-const supabase = createClient("https://hybozykbfehfjldhaxpp.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5Ym96eWtiZmVoZmpsZGhheHBwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTMyNTQ5MywiZXhwIjoyMDc0OTAxNDkzfQ.Z4cC0n-j9ahtcmI_Bt1-O9PdVqNO023TQh50QrLTjGE");
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 const DB_FILE = "usuarios.json";
 
