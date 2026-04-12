@@ -43,10 +43,6 @@ const USDT_BEP20_CONTRACT =
 
 const MONTO_MEMBRESIA = 15;
 
-console.log("💼 WALLET_MADRE ACTUAL:", WALLET_MADRE);
-console.log("📦 USDT_BEP20_CONTRACT:", USDT_BEP20_CONTRACT);
-console.log("🌐 RPC_BSC:", RPC_BSC);
-
 const CATALOGO_MATERIAL = {
   basico: [
     {
