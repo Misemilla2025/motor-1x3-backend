@@ -30,16 +30,16 @@ const supabase = createClient("https://hybozykbfehfjldhaxpp.supabase.co",
 
 const DB_FILE = "usuarios.json";
 
-const RPC_BSC = process.env.RPC_BSC || "https://bsc-dataseed.binance.org/";
+const RPC_BSC = process.env.RPC_BSC;
 const TOKEN_NOMBRE = "USDT";
 const RED_PAGO = "BEP20";
 const CHAIN_ID = 56;
 
 const WALLET_MADRE =
-  process.env.WALLET_MADRE || "0x08cc7d080473435c47cc2a89f5e10a1eecb81796";
+  process.env.WALLET_MADRE;
 
 const USDT_BEP20_CONTRACT =
-  process.env.USDT_BEP20_CONTRACT || "0x55d398326f99059ff775485246999027b3197955";
+  process.env.USDT_BEP20_CONTRACT;
 
 const MONTO_MEMBRESIA = 15;
 
