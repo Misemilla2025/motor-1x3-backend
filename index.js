@@ -1826,7 +1826,14 @@ app.get("/materiales-disponibles/:email", async (req, res) => {
 ========================= */
 app.post("/elegir-material", async (req, res) => {
   try {
-    const { email, material_id } = req.body;
+    const authInfo = await getUsuarioAutenticado(req);
+
+    if (authInfo.error || !authInfo.user) {
+      return res.status(401).json({ error: "Sesion no valida" });
+    }
+
+    const email = String(authInfo.user.email || "").trim().toLowerCase();
+    const { material_id } = req.body;
 
     if (!email || !material_id) {
       return res.status(400).json({ error: "Faltan datos" });
@@ -1856,13 +1863,13 @@ app.post("/elegir-material", async (req, res) => {
     }
 
     const { error: updateError } = await supabase
-  .from("usuarios_1x3")
-  .update({
-    material_basico_usado: true,
-    material_basico_id: material.id,
-    decision_pendiente: false
-  })
-  .eq("email", email);
+      .from("usuarios_1x3")
+      .update({
+        material_basico_usado: true,
+        material_basico_id: material.id,
+        decision_pendiente: false
+      })
+      .eq("email", email);
 
     if (updateError) {
       return res.status(500).json({ error: "Error guardando material", detalle: updateError.message });
