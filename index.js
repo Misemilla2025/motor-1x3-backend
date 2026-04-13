@@ -36,6 +36,45 @@ const supabase = createClient(
   }
 );
 
+const supabaseAnon = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
+
+async function getUsuarioAutenticado(req) {
+  const token = extraerToken(req);
+
+  if (!token) {
+    return {
+      error: "Token no enviado",
+      user: null,
+      supabaseUser: null
+    };
+  }
+
+  const { data, error } = await supabaseAnon.auth.getUser(token);
+
+  if (error || !data?.user) {
+    return {
+      error: "Sesion no valida",
+      user: null,
+      supabaseUser: null
+    };
+  }
+
+  return {
+    error: null,
+    user: data.user,
+    supabaseUser: getSupabaseForUser(req)
+  };
+}
+
 const DB_FILE = "usuarios.json";
 
 const RPC_BSC = process.env.RPC_BSC;
