@@ -1777,11 +1777,22 @@ app.post("/enviar-pago", async (req, res) => {
 
 
 /* =========================
-   MATERIALES DISPONIBLES (SOLO BÁSICO)
+   MATERIALES DISPONIBLES (SOLO BASICO)
 ========================= */
-app.get("/materiales-disponibles/:email", async (req, res) => {
+app.get("/materiales-disponibles", async (req, res) => {
   try {
-    const { email } = req.params;
+    const authInfo = await getUsuarioAutenticado(req);
+
+    if (authInfo.error || !authInfo.user) {
+      return res.status(401).json({ error: "Sesion no valida" });
+    }
+
+    const email = String(authInfo.user.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ error: "No se pudo obtener el correo del usuario autenticado" });
+    }
+
     const { data: user, error } = await supabase
       .from("usuarios_1x3")
       .select("*")
@@ -1810,7 +1821,6 @@ app.get("/materiales-disponibles/:email", async (req, res) => {
     });
   }
 });
-
 
 /* =========================
    ELEGIR MATERIAL (SOLO BÁSICO)
