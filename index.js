@@ -47,6 +47,40 @@ const supabaseAnon = createClient(
   }
 );
 
+function extraerToken(req) {
+  const authHeader = req.headers.authorization || "";
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  return authHeader.slice(7).trim();
+}
+
+function getSupabaseForUser(req) {
+  const token = extraerToken(req);
+
+  if (!token) {
+    return null;
+  }
+
+  return createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+}
+
 async function getUsuarioAutenticado(req) {
   const token = extraerToken(req);
 
