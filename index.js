@@ -485,9 +485,23 @@ app.post("/crear-estructura", async (req, res) => {
 /* =========================
    RESUMEN (SUPABASE) - NUEVA LÓGICA A + B
 ========================= */
-app.get("/resumen/:email", async (req, res) => {
+app.get("/resumen", async (req, res) => {
   try {
-    const { email } = req.params;
+    const authInfo = await getUsuarioAutenticado(req);
+
+    if (authInfo.error || !authInfo.user) {
+      return res.status(401).json({
+        message: "Sesion no valida"
+      });
+    }
+
+    const email = String(authInfo.user.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        message: "No se pudo obtener el correo del usuario autenticado"
+      });
+    }
 
     const { data: user, error } = await supabase
       .from("usuarios_1x3")
@@ -527,10 +541,10 @@ app.get("/resumen/:email", async (req, res) => {
       !!bloqueActual;
 
     const puedeApagarAutomatico =
-  user.decision_pendiente === true &&
-  automaticoActivo &&
-  bloqueActual === "A" &&
-  materialBasicoUsado !== true;
+      user.decision_pendiente === true &&
+      automaticoActivo &&
+      bloqueActual === "A" &&
+      materialBasicoUsado !== true;
 
     // =========================
     // SOLO MATERIAL BÁSICO
@@ -584,57 +598,57 @@ app.get("/resumen/:email", async (req, res) => {
     }
 
     return res.json({
-  email: user.email,
-  estado,
+      email: user.email,
+      estado,
 
-  nivel: user.nivel || user.bloque_actual || null,
-  bloque_actual: bloqueActual,
-  ciclo: Number(user.ciclo || 1),
+      nivel: user.nivel || user.bloque_actual || null,
+      bloque_actual: bloqueActual,
+      ciclo: Number(user.ciclo || 1),
 
-  saldo_directo: saldoDirecto,
-  saldo_total: saldoAcumulado,
-  saldo_acumulado: saldoAcumulado,
-  saldo_retenido: saldoRetenido,
-  saldo_disponible_retiro: saldoDisponibleRetiro,
+      saldo_directo: saldoDirecto,
+      saldo_total: saldoAcumulado,
+      saldo_acumulado: saldoAcumulado,
+      saldo_retenido: saldoRetenido,
+      saldo_disponible_retiro: saldoDisponibleRetiro,
 
-  ciclos_pequenos: ciclosPequenos,
+      ciclos_pequenos: ciclosPequenos,
 
-  decision_pendiente: user.decision_pendiente === true,
-  puede_apagar_automatico: puedeApagarAutomatico,
-  automatico_activo: automaticoActivo,
+      decision_pendiente: user.decision_pendiente === true,
+      puede_apagar_automatico: puedeApagarAutomatico,
+      automatico_activo: automaticoActivo,
 
-  wallet: user.wallet_usuario || null,
-  wallet_red: user.wallet_red || "BEP20",
-  wallet_validada: user.wallet_validada || false,
+      wallet: user.wallet_usuario || null,
+      wallet_red: user.wallet_red || "BEP20",
+      wallet_validada: user.wallet_validada || false,
 
-  progreso_visible: {
-    mostrar_barras: automaticoActivo,
-    hijos_a: hijosA,
-    hijos_b: hijosB,
-    total_a: 3,
-    total_b: 3
-  },
+      progreso_visible: {
+        mostrar_barras: automaticoActivo,
+        hijos_a: hijosA,
+        hijos_b: hijosB,
+        total_a: 3,
+        total_b: 3
+      },
 
-  pago_inicial: user.pago_inicial || null,
+      pago_inicial: user.pago_inicial || null,
 
-  material: {
-    basico_habilitado: basicoHabilitado,
-    tipo_disponible: basicoHabilitado ? "basico" : null
-  },
+      material: {
+        basico_habilitado: basicoHabilitado,
+        tipo_disponible: basicoHabilitado ? "basico" : null
+      },
 
-  material_basico_id: user.material_basico_id || null,
+      material_basico_id: user.material_basico_id || null,
 
-  descarga_usada: {
-    basico: materialBasicoUsado
-  },
+      descarga_usada: {
+        basico: materialBasicoUsado
+      },
 
-  total_retirado: totalRetirado,
+      total_retirado: totalRetirado,
 
-  hijos: [],
-  tableroA: [],
-  tableroB: [],
-  historial: []
-});
+      hijos: [],
+      tableroA: [],
+      tableroB: [],
+      historial: []
+    });
 
   } catch (error) {
     console.log("❌ Error en resumen:", error.message);
