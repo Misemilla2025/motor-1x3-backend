@@ -1357,7 +1357,8 @@ app.post("/reportar-pago", async (req, res) => {
 });
 */
 
- RESOLVER DECISION / SALIR DEL FLUJO
+/* =========================
+   RESOLVER DECISION / SALIR DEL FLUJO
 ========================= */
 app.post("/resolver-decision", async (req, res) => {
   try {
@@ -1375,7 +1376,7 @@ app.post("/resolver-decision", async (req, res) => {
     }
 
     if (decision !== "detener_automatico") {
-      return res.status(400).json({ error: "Acción inválida" });
+      return res.status(400).json({ error: "Accion invalida" });
     }
 
     const { data: usuario, error: errorUsuario } = await supabase
@@ -1395,7 +1396,7 @@ app.post("/resolver-decision", async (req, res) => {
       .maybeSingle();
 
     if (errorUsuario) {
-      console.log("❌ Error buscando usuario:", errorUsuario.message);
+      console.log("Error buscando usuario:", errorUsuario.message);
       return res.status(500).json({ error: "Error buscando usuario" });
     }
 
@@ -1404,16 +1405,15 @@ app.post("/resolver-decision", async (req, res) => {
     }
 
     if (usuario.estado !== "ACTIVO") {
-      return res.status(400).json({ error: "El usuario no está activo" });
+      return res.status(400).json({ error: "El usuario no esta activo" });
     }
 
     if (!usuario.decision_pendiente) {
       return res.status(400).json({
-        error: "Este usuario no tiene habilitada la opción de salir del flujo"
+        error: "Este usuario no tiene habilitada la opcion de salir del flujo"
       });
     }
 
-    // 🔎 Buscar SOLO el nodo activo en A
     const { data: nodoActivoA, error: errorNodoActivoA } = await supabase
       .from("colas_1x3")
       .select("id, bloque, completado, padre_id, padre_email")
@@ -1425,7 +1425,7 @@ app.post("/resolver-decision", async (req, res) => {
       .maybeSingle();
 
     if (errorNodoActivoA) {
-      console.log("❌ Error buscando nodo activo en A:", errorNodoActivoA.message);
+      console.log("Error buscando nodo activo en A:", errorNodoActivoA.message);
       return res.status(500).json({
         error: "Error validando la fase actual del usuario"
       });
@@ -1433,21 +1433,17 @@ app.post("/resolver-decision", async (req, res) => {
 
     if (!nodoActivoA) {
       return res.status(400).json({
-        error: "No tienes una posición activa en fase A para salir del flujo"
+        error: "No tienes una posicion activa en fase A para salir del flujo"
       });
     }
 
     const saldoRetenido = Number(usuario.saldo_retenido || 0);
     const saldoDisponibleActual = Number(usuario.saldo_disponible_retiro || 0);
 
-    // 🔓 Al salir se libera lo retenido
     const nuevoSaldoDisponibleRetiro = Number(
       (saldoDisponibleActual + saldoRetenido).toFixed(2)
     );
 
-    // =========================
-    // LIBERAR EL ESPACIO DEL PADRE
-    // =========================
     if (nodoActivoA?.padre_id) {
       const { data: padreActual, error: errorPadreActual } = await supabase
         .from("colas_1x3")
@@ -1456,7 +1452,7 @@ app.post("/resolver-decision", async (req, res) => {
         .maybeSingle();
 
       if (errorPadreActual) {
-        console.log("⚠️ Error consultando padre actual:", errorPadreActual.message);
+        console.log("Error consultando padre actual:", errorPadreActual.message);
       }
 
       if (padreActual && padreActual.completado === false) {
@@ -1471,31 +1467,25 @@ app.post("/resolver-decision", async (req, res) => {
           .eq("id", padreActual.id);
 
         if (errorRestarHijo) {
-          console.log("⚠️ Error restando hijo al padre:", errorRestarHijo.message);
+          console.log("Error restando hijo al padre:", errorRestarHijo.message);
         } else {
-          console.log(`↩️ Se liberó un espacio en el padre ${nodoActivoA.padre_email}`);
+          console.log(`Se libero un espacio en el padre ${nodoActivoA.padre_email}`);
         }
       }
     }
 
-    // =========================
-    // CERRAR SOLO EL NODO ACTIVO EN A
-    // =========================
     const { error: errorCerrarNodo } = await supabase
       .from("colas_1x3")
       .update({ completado: true })
       .eq("id", nodoActivoA.id);
 
     if (errorCerrarNodo) {
-      console.log("❌ Error cerrando nodo activo en A:", errorCerrarNodo.message);
+      console.log("Error cerrando nodo activo en A:", errorCerrarNodo.message);
       return res.status(500).json({
-        error: "Error retirando usuario del flujo automático"
+        error: "Error retirando usuario del flujo automatico"
       });
     }
 
-    // =========================
-    // ACTUALIZAR USUARIO
-    // =========================
     const { error: errorUpdate } = await supabase
       .from("usuarios_1x3")
       .update({
@@ -1509,15 +1499,12 @@ app.post("/resolver-decision", async (req, res) => {
       .eq("email", email);
 
     if (errorUpdate) {
-      console.log("❌ Error sacando usuario del flujo:", errorUpdate.message);
+      console.log("Error sacando usuario del flujo:", errorUpdate.message);
       return res.status(500).json({
         error: "Error actualizando estado del usuario"
       });
     }
 
-    // =========================
-    // HISTORIAL
-    // =========================
     const { error: errorHistorial } = await supabase
       .from("historial_1x3")
       .insert([{
@@ -1525,7 +1512,7 @@ app.post("/resolver-decision", async (req, res) => {
         email: usuario.email,
         tipo: "automatico_apagado",
         detalle: {
-          mensaje: "Usuario salió del flujo automático desde fase A y se liberó el saldo retenido",
+          mensaje: "Usuario salio del flujo automatico desde fase A y se libero el saldo retenido",
           saldo_retenido_liberado: saldoRetenido,
           saldo_disponible_retiro: nuevoSaldoDisponibleRetiro,
           total_retirado: Number(usuario.total_retirado || 0),
@@ -1535,7 +1522,7 @@ app.post("/resolver-decision", async (req, res) => {
       }]);
 
     if (errorHistorial) {
-      console.log("⚠️ Error guardando historial:", errorHistorial.message);
+      console.log("Error guardando historial:", errorHistorial.message);
     }
 
     return res.json({
@@ -1547,9 +1534,9 @@ app.post("/resolver-decision", async (req, res) => {
     });
 
   } catch (error) {
-    console.log("❌ Error en /resolver-decision:", error.message);
+    console.log("Error en /resolver-decision:", error.message);
     return res.status(500).json({
-      error: "Error procesando la acción",
+      error: "Error procesando la accion",
       detalle: error.message
     });
   }
