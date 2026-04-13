@@ -1357,7 +1357,7 @@ app.post("/reportar-pago", async (req, res) => {
 });
 */
 
- RESOLVER DECISIÓN / SALIR DEL FLUJO
+ RESOLVER DECISION / SALIR DEL FLUJO
 ========================= */
 app.post("/resolver-decision", async (req, res) => {
   try {
