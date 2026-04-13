@@ -1357,12 +1357,18 @@ app.post("/reportar-pago", async (req, res) => {
 });
 */
 
-/* =========================
-   RESOLVER DECISIÓN / SALIR DEL FLUJO
+ RESOLVER DECISIÓN / SALIR DEL FLUJO
 ========================= */
 app.post("/resolver-decision", async (req, res) => {
   try {
-    const { email, decision } = req.body;
+    const authInfo = await getUsuarioAutenticado(req);
+
+    if (authInfo.error || !authInfo.user) {
+      return res.status(401).json({ error: "Sesion no valida" });
+    }
+
+    const email = String(authInfo.user.email || "").trim().toLowerCase();
+    const { decision } = req.body;
 
     if (!email || !decision) {
       return res.status(400).json({ error: "Faltan datos" });
