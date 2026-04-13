@@ -983,7 +983,7 @@ console.log("🔥 ESTE ES EL BACKEND REAL QUE ESTOY EJECUTANDO");
 console.log("🔥 VALIDAR PAGO CARGADO");
 
 /* =========================
-   REPORTAR PAGO (ACTIVACIÓN + REACTIVACIÓN) - FIX COMPLETO
+   REPORTAR PAGO (ACTIVACION + REACTIVACION) - FIX COMPLETO
 ========================= */
 console.log("🔥 CARGANDO ENDPOINT REPORTAR-PAGO...");
 
@@ -991,9 +991,16 @@ app.post("/reportar-pago", async (req, res) => {
   console.log("🔥 ENDPOINT REPORTAR-PAGO ACTIVO");
 
   try {
-    const { email, txid } = req.body;
+    const authInfo = await getUsuarioAutenticado(req);
 
-    console.log("📩 Entró a /reportar-pago:", email, txid);
+    if (authInfo.error || !authInfo.user) {
+      return res.status(401).json({ error: "Sesion no valida" });
+    }
+
+    const email = String(authInfo.user.email || "").trim().toLowerCase();
+    const { txid } = req.body;
+
+    console.log("📩 Entro a /reportar-pago:", email, txid);
 
     if (!email || !txid) {
       return res.status(400).json({ error: "Datos incompletos" });
@@ -1032,7 +1039,7 @@ app.post("/reportar-pago", async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    // Reactivación = usuario activo pero fuera del flujo
+    // Reactivacion = usuario activo pero fuera del flujo
     const esReactivacion =
       user.estado === "ACTIVO" &&
       (
@@ -1040,7 +1047,7 @@ app.post("/reportar-pago", async (req, res) => {
         user.nivel === "DETENIDO"
       );
 
-    // Si ya está activo y participando, no debe volver a pagar
+    // Si ya esta activo y participando, no debe volver a pagar
     if (user.estado === "ACTIVO" && !esReactivacion) {
       return res.status(400).json({
         error: "Usuario ya activado y participando en el sistema"
@@ -1085,7 +1092,7 @@ app.post("/reportar-pago", async (req, res) => {
     }
 
     // =========================
-    // VALIDACIÓN REAL EN BLOCKCHAIN
+    // VALIDACION REAL EN BLOCKCHAIN
     // =========================
     let resultado;
 
@@ -1114,7 +1121,7 @@ app.post("/reportar-pago", async (req, res) => {
         .eq("email", email);
 
       return res.status(400).json({
-        error: resultado?.motivo || "Pago inválido",
+        error: resultado?.motivo || "Pago invalido",
         intentos
       });
     }
@@ -1140,9 +1147,9 @@ app.post("/reportar-pago", async (req, res) => {
     let seInsertoNuevoNodo = false;
 
     // Si ya existe un nodo activo, no lo duplicamos.
-    // Solo completamos la activación/reactivación pendiente.
+    // Solo completamos la activacion/reactivacion pendiente.
     if (nodoActivo && nodoActivo.length > 0) {
-      console.log("⚠️ El usuario ya tenía nodo activo. Se completará la activación pendiente.");
+      console.log("⚠️ El usuario ya tenia nodo activo. Se completara la activacion pendiente.");
       ordenAUsar = Number(nodoActivo[0].orden || 0);
     } else {
       // =========================
@@ -1156,7 +1163,7 @@ app.post("/reportar-pago", async (req, res) => {
         .limit(1);
 
       if (errorUltimoA) {
-        console.log("❌ Error buscando último orden en A:", errorUltimoA.message);
+        console.log("❌ Error buscando ultimo orden en A:", errorUltimoA.message);
         return res.status(500).json({ error: "Error preparando ingreso al tablero A" });
       }
 
@@ -1170,17 +1177,16 @@ app.post("/reportar-pago", async (req, res) => {
       // =========================
       const { error: errorInsertA } = await supabase
         .from("colas_1x3")
-       .insert([{
-        user_id: user.user_id,
-        email,
-        bloque: "A",
-        orden: ordenAUsar,
-        hijos: 0,
-        completado: false,
-        padre_id: null,
-        padre_email: null
-       }]);
-
+        .insert([{
+          user_id: user.user_id,
+          email,
+          bloque: "A",
+          orden: ordenAUsar,
+          hijos: 0,
+          completado: false,
+          padre_id: null,
+          padre_email: null
+        }]);
 
       if (errorInsertA) {
         console.log("❌ Error insertando en A:", errorInsertA.message);
@@ -1210,15 +1216,15 @@ app.post("/reportar-pago", async (req, res) => {
       saldo_directo: 0,
       saldo_retenido: 0,
 
-      // Mantener retiros acumulados si viene de reactivación
+      // Mantener retiros acumulados si viene de reactivacion
       saldo_disponible_retiro: Number(user.saldo_disponible_retiro || 0),
 
-      // Liberar nuevamente el material básico
+      // Liberar nuevamente el material basico
       material_basico_usado: false,
       material_basico_id: null
     };
 
-    // Solo en activación inicial se guarda como pago inicial
+    // Solo en activacion inicial se guarda como pago inicial
     if (!esReactivacion) {
       updateData.pago_inicial = {
         txid,
@@ -1237,7 +1243,7 @@ app.post("/reportar-pago", async (req, res) => {
     if (updateError) {
       console.log("❌ Error actualizando usuario:", updateError.message);
 
-      // rollback solo si sí insertamos un nodo nuevo en esta ejecución
+      // rollback solo si si insertamos un nodo nuevo en esta ejecucion
       if (seInsertoNuevoNodo) {
         await supabase
           .from("colas_1x3")
@@ -1320,40 +1326,6 @@ app.post("/reportar-pago", async (req, res) => {
     });
   }
 });
-
-    // =========================
-    // ENTRAR AL DERRAME DE A
-    // =========================
-/*
-    await asignarPadreYSumarHijo(user.user_id, "A", email);
-
-    console.log(esReactivacion
-      ? "✅ Usuario reactivado correctamente:"
-      : "✅ Usuario activado correctamente:", email);
-
-    return res.json({
-      ok: true,
-      message: esReactivacion
-        ? "Cuenta reactivada correctamente"
-        : "Cuenta activada correctamente",
-      estado: "ACTIVO",
-      bloque_actual: "A",
-      nivel: "A",
-      monto: montoFinal,
-      red: "BEP20",
-      reactivado: esReactivacion
-    });
-
-  } catch (error) {
-    console.error("❌ Error en /reportar-pago:", error.message);
-
-    return res.status(500).json({
-      error: "Error validando pago",
-      detalle: error.message
-    });
-  }
-});
-*/
 
 /* =========================
    RESOLVER DECISION / SALIR DEL FLUJO
