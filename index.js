@@ -517,7 +517,7 @@ app.post("/crear-estructura", async (req, res) => {
 });
 
 /* =========================
-   RESUMEN (SUPABASE) - NUEVA LÓGICA A + B
+   RESUMEN (SUPABASE) - NUEVA LOGICA A + B
 ========================= */
 app.get("/resumen", async (req, res) => {
   try {
@@ -565,7 +565,7 @@ app.get("/resumen", async (req, res) => {
     const materialBasicoUsado = user.material_basico_usado === true;
 
     // =========================
-    // AUTOMÁTICO / ESTADO DE FLUJO
+    // AUTOMATICO / ESTADO DE FLUJO
     // =========================
     const bloqueActual = user.bloque_actual || user.nivel || null;
 
@@ -581,7 +581,7 @@ app.get("/resumen", async (req, res) => {
       materialBasicoUsado !== true;
 
     // =========================
-    // SOLO MATERIAL BÁSICO
+    // SOLO MATERIAL BASICO
     // =========================
     const basicoHabilitado = activo && !materialBasicoUsado;
 
@@ -595,10 +595,9 @@ app.get("/resumen", async (req, res) => {
       if (bloqueActual === "A") {
         const { data: nodoA, error: errorNodoA } = await supabase
           .from("colas_1x3")
-          .select("hijos")
+          .select("hijos, completado")
           .eq("user_id", user.user_id)
           .eq("bloque", "A")
-          .eq("completado", false)
           .order("orden", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -607,17 +606,16 @@ app.get("/resumen", async (req, res) => {
           console.log("⚠️ Error consultando nodo A:", errorNodoA.message);
         }
 
-        hijosA = Number(nodoA?.hijos || 0);
+        hijosA = nodoA?.completado === true ? 3 : Number(nodoA?.hijos || 0);
         hijosB = 0;
       }
 
       if (bloqueActual === "B") {
         const { data: nodoB, error: errorNodoB } = await supabase
           .from("colas_1x3")
-          .select("hijos")
+          .select("hijos, completado")
           .eq("user_id", user.user_id)
           .eq("bloque", "B")
-          .eq("completado", false)
           .order("orden", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -627,7 +625,7 @@ app.get("/resumen", async (req, res) => {
         }
 
         hijosA = 3;
-        hijosB = Number(nodoB?.hijos || 0);
+        hijosB = nodoB?.completado === true ? 3 : Number(nodoB?.hijos || 0);
       }
     }
 
