@@ -2437,7 +2437,14 @@ app.post("/solicitar-otp-retiro", async (req, res) => {
   try {
     console.log("📩 ENTRÓ A /solicitar-otp-retiro", req.body);
 
-    const { email, wallet_destino, monto_solicitado } = req.body;
+    const authInfo = await getUsuarioAutenticado(req);
+
+    if (authInfo.error || !authInfo.user) {
+      return res.status(401).json({ error: "Sesion no valida" });
+    }
+
+    const email = String(authInfo.user.email || "").trim().toLowerCase();
+    const { wallet_destino, monto_solicitado } = req.body;
 
     if (!email || !wallet_destino || monto_solicitado === undefined || monto_solicitado === null) {
       return res.status(400).json({ error: "Faltan datos" });
@@ -2625,7 +2632,14 @@ app.post("/solicitar-otp-retiro", async (req, res) => {
 ========================= */
 app.post("/confirmar-otp-retiro", async (req, res) => {
   try {
-    const { email, codigo } = req.body;
+    const authInfo = await getUsuarioAutenticado(req);
+
+    if (authInfo.error || !authInfo.user) {
+      return res.status(401).json({ error: "Sesion no valida" });
+    }
+
+    const email = String(authInfo.user.email || "").trim().toLowerCase();
+    const { codigo } = req.body;
 
     if (!email || !codigo) {
       return res.status(400).json({ error: "Faltan datos" });
@@ -2697,57 +2711,57 @@ app.post("/confirmar-otp-retiro", async (req, res) => {
 
     const montoRetiro = Number(otp.monto || 0);
 
-if (montoRetiro < 15) {
-  return res.status(400).json({ error: "El monto mínimo de retiro es $15" });
-}
+    if (montoRetiro < 15) {
+      return res.status(400).json({ error: "El monto mínimo de retiro es $15" });
+    }
 
-const { data: usuario, error: errorUsuario } = await supabase
-  .from("usuarios_1x3")
-  .select("user_id, email, estado, saldo_disponible_retiro, saldo_retenido, total_retirado")
-  .eq("email", email)
-  .maybeSingle();
+    const { data: usuario, error: errorUsuario } = await supabase
+      .from("usuarios_1x3")
+      .select("user_id, email, estado, saldo_disponible_retiro, saldo_retenido, total_retirado")
+      .eq("email", email)
+      .maybeSingle();
 
-if (errorUsuario) {
-  return res.status(500).json({
-    error: "Error consultando usuario",
-    detalle: errorUsuario.message
-  });
-}
+    if (errorUsuario) {
+      return res.status(500).json({
+        error: "Error consultando usuario",
+        detalle: errorUsuario.message
+      });
+    }
 
-if (!usuario) {
-  return res.status(404).json({ error: "Usuario no encontrado" });
-}
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
 
-if (usuario.estado !== "ACTIVO") {
-  return res.status(400).json({ error: "El usuario no está activo" });
-}
+    if (usuario.estado !== "ACTIVO") {
+      return res.status(400).json({ error: "El usuario no está activo" });
+    }
 
-const yaRetiroHoy = await usuarioYaRetiroHoy(usuario.user_id);
+    const yaRetiroHoy = await usuarioYaRetiroHoy(usuario.user_id);
 
-if (yaRetiroHoy) {
-  return res.status(400).json({
-    error: "Ya realizaste un retiro hoy. Intenta nuevamente mañana."
-  });
-}
+    if (yaRetiroHoy) {
+      return res.status(400).json({
+        error: "Ya realizaste un retiro hoy. Intenta nuevamente mañana."
+      });
+    }
 
-const saldoDisponible = Number(usuario.saldo_disponible_retiro || 0);
-const saldoRetenido = Number(usuario.saldo_retenido || 0);
-const totalRetiradoActual = Number(usuario.total_retirado || 0);
-const maximoPermitidoActual = saldoDisponible;
+    const saldoDisponible = Number(usuario.saldo_disponible_retiro || 0);
+    const saldoRetenido = Number(usuario.saldo_retenido || 0);
+    const totalRetiradoActual = Number(usuario.total_retirado || 0);
+    const maximoPermitidoActual = saldoDisponible;
 
-if (saldoDisponible <= 0) {
-  return res.status(400).json({ error: "No hay saldo disponible para retiro" });
-}
+    if (saldoDisponible <= 0) {
+      return res.status(400).json({ error: "No hay saldo disponible para retiro" });
+    }
 
-if (montoRetiro > maximoPermitidoActual) {
-  return res.status(400).json({
-    error: `El monto ya no es válido. Máximo permitido actual: $${maximoPermitidoActual}`
-  });
-}
+    if (montoRetiro > maximoPermitidoActual) {
+      return res.status(400).json({
+        error: `El monto ya no es válido. Máximo permitido actual: $${maximoPermitidoActual}`
+      });
+    }
 
-if (!otp.wallet_destino || !/^0x[a-fA-F0-9]{40}$/.test(String(otp.wallet_destino))) {
-  return res.status(400).json({ error: "La billetera destino guardada no es válida" });
-}
+    if (!otp.wallet_destino || !/^0x[a-fA-F0-9]{40}$/.test(String(otp.wallet_destino))) {
+      return res.status(400).json({ error: "La billetera destino guardada no es válida" });
+    }
 
     const decimals = await contratoUSDT.decimals();
     const amount = ethers.parseUnits(String(montoRetiro), decimals);
