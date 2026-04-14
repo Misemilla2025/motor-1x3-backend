@@ -1129,6 +1129,14 @@ app.post("/reportar-pago", async (req, res) => {
     const fechaAhora = new Date().toISOString();
 
     // =========================
+    // EXCEDENTE DEL PAGO
+    // =========================
+    const montoBase = 15;
+    const excedentePago = Number(Math.max(0, montoFinal - montoBase).toFixed(2));
+    const saldoDisponiblePrevio = Number(user.saldo_disponible_retiro || 0);
+    const nuevoSaldoDisponible = Number((saldoDisponiblePrevio + excedentePago).toFixed(2));
+
+    // =========================
     // REVISAR SI YA TIENE NODO ACTIVO
     // =========================
     const { data: nodoActivo, error: errorNodoActivo } = await supabase
@@ -1216,8 +1224,8 @@ app.post("/reportar-pago", async (req, res) => {
       saldo_directo: 0,
       saldo_retenido: 0,
 
-      // Mantener retiros acumulados si viene de reactivacion
-      saldo_disponible_retiro: Number(user.saldo_disponible_retiro || 0),
+      // Mantener saldo previo y sumar excedente del pago
+      saldo_disponible_retiro: nuevoSaldoDisponible,
 
       // Liberar nuevamente el material basico
       material_basico_usado: false,
@@ -1288,6 +1296,8 @@ app.post("/reportar-pago", async (req, res) => {
           txid,
           monto: montoFinal,
           red: "BEP20",
+          excedente_acreditado: excedentePago,
+          saldo_disponible_retiro_final: nuevoSaldoDisponible,
           reingreso_bloque: "A",
           orden_reingreso: ordenAUsar,
           material_basico_habilitado: true
@@ -1312,6 +1322,8 @@ app.post("/reportar-pago", async (req, res) => {
         : "Cuenta activada correctamente",
       estado: "ACTIVO",
       monto: montoFinal,
+      excedente_acreditado: excedentePago,
+      saldo_disponible_retiro: nuevoSaldoDisponible,
       red: "BEP20",
       bloque_actual: "A",
       nivel: "A"
