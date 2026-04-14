@@ -124,103 +124,105 @@ const USDT_BEP20_CONTRACT =
 
 const MONTO_MEMBRESIA = 15;
 
+const BUCKET_MATERIAL = "material-privado";
+
 const CATALOGO_MATERIAL = {
   basico: [
     {
       id: "conciencia",
       titulo: "Conciencia Espiritual",
       descripcion: "Desarrolla tu crecimiento interior y conexión espiritual",
-      url: "https://drive.google.com/file/d/10emT5yE8ksoT6JGVpC-xHou4fWvyVm-D/view?usp=sharing"
+      storage_path: "basico/conciencia-espiritual.pdf"
     },
     {
       id: "autoestima",
       titulo: "El Poder de Creer en Ti",
       descripcion: "Fortalece tu autoestima y mentalidad de crecimiento",
-      url: "https://drive.google.com/file/d/1sxpteWalZrQd6gvxfgTSOxg3zqhvTTar/view?usp=sharing"
+      storage_path: "basico/el-poder-de-creer-en-ti.pdf"
     },
     {
       id: "bisuteria",
       titulo: "Emprendimiento en Bisutería",
       descripcion: "Aprende a crear y vender tus propios accesorios",
-      url: "https://drive.google.com/file/d/1nn8UxDy9uwLhnTIwnpu06Wrt857Ubcdh/view?usp=sharing"
+      storage_path: "basico/emprendimiento-bisuteria.pdf"
     },
     {
       id: "postres",
       titulo: "Guía para Emprender en Postres",
       descripcion: "Convierte tus recetas en un negocio rentable",
-      url: "https://drive.google.com/file/d/1Oq-4qsGAyrImWZN3q4RAV8hlSRyt0P0X/view?usp=sharing"
+      storage_path: "basico/guia-emprender-postres.pdf"
     },
     {
       id: "esencias",
       titulo: "Cómo Crear Esencias en Frasco",
       descripcion: "Aprende a producir fragancias y productos artesanales",
-      url: "https://drive.google.com/file/d/12gsGTJhkBHe-COdoO_ps7pl4OpdvtIM8/view?usp=sharing"
+      storage_path: "basico/crear-esencias-frasco.pdf"
     },
     {
       id: "pollo_naranja",
       titulo: "Receta de Pollo a la Naranja al Horno",
       descripcion: "Una opción deliciosa para emprender en comida",
-      url: "https://drive.google.com/file/d/1mvMrddIkCETmEDsI2CsWcx0VxFLBkesd/view?usp=sharing"
+      storage_path: "basico/pollo-naranja-horno.pdf"
     },
     {
       id: "especias",
       titulo: "Guía de Especias Naturales",
       descripcion: "20 ideas para cocinar y emprender desde casa",
-      url: "https://drive.google.com/file/d/1eLa2PqFHdt7gfMYKtVpl5Hy0ism1bgJY/view?usp=sharing"
+      storage_path: "basico/guia-especias-naturales.pdf"
     },
     {
       id: "equilibrio_interior",
       titulo: "Equilibrio Interior",
       descripcion: "Aprende a fortalecer tu paz y estabilidad emocional",
-      url: "https://drive.google.com/file/d/1iK8ZTp26cYcG6v1XApQsoMQyJtbFyl0A/view?usp=sharing"
+      storage_path: "basico/equilibrio-interior.pdf"
     },
     {
       id: "hogar_en_calma",
       titulo: "Hogar en Calma",
       descripcion: "Ideas para crear un ambiente de armonía en casa",
-      url: "https://drive.google.com/file/d/18X2Qy48ViIJaCMDkLYSV7XMheHwmZbHn/view?usp=sharing"
+      storage_path: "basico/hogar-en-calma.pdf"
     },
     {
       id: "finanzas_presupuesto",
       titulo: "Domina Tus Finanzas",
       descripcion: "Crea tu presupuesto en dólares y aprende a ahorrar",
-      url: "https://drive.google.com/file/d/1Wzi5ZBe50SV_Tl97gqSmd9XMGQ_9bHoV/view?usp=sharing"
+      storage_path: "basico/domina-tus-finanzas.pdf"
     },
     {
       id: "criptomonedas_2026",
       titulo: "Todo sobre Criptomonedas en 2026",
       descripcion: "Conceptos y panorama actual para entender el mercado",
-      url: "https://drive.google.com/file/d/1Zjp6SQBtwdMBb2Q5__oU4BvYsnkMrgvA/view?usp=sharing"
+      storage_path: "basico/criptomonedas-2026.pdf"
     },
     {
       id: "color_tu_alma",
       titulo: "El Color de Tu Alma",
       descripcion: "Crea un hogar que refleje tu esencia y bienestar",
-      url: "https://drive.google.com/file/d/1arxoXYZPaIJp_VAB_wwldMVbFanpgDLh/view?usp=sharing"
+      storage_path: "basico/el-color-de-tu-alma.pdf"
     },
     {
       id: "jardin_interior",
       titulo: "Jardín Interior",
       descripcion: "Dale vida a tu hogar con plantas ornamentales",
-      url: "https://drive.google.com/file/d/1Zt1qZcMvVI2mPvN4M_44JIYyOgMHr67O/view?usp=sharing"
+      storage_path: "basico/jardin-interior.pdf"
     },
     {
       id: "joyeria_casa",
       titulo: "Mantenimiento de Joyería en Casa",
       descripcion: "Devuelve el brillo a tus tesoros con cuidados prácticos",
-      url: "https://drive.google.com/file/d/1rZYVFrEe46mhrbgyB7BE3b-q_wRgUrmX/view?usp=sharing"
+      storage_path: "basico/mantenimiento-joyeria-casa.pdf"
     },
     {
       id: "cuidado_personal",
       titulo: "Qué es Realmente el Cuidado Personal",
       descripcion: "Comprende el autocuidado y cómo aplicarlo en tu vida",
-      url: "https://drive.google.com/file/d/1z7_0W0XSm_59DHYUiMJ65a5aS53ODBwq/view?usp=sharing"
+      storage_path: "basico/cuidado-personal-realmente.pdf"
     },
     {
       id: "huerto_casa",
       titulo: "Tu Huerto en Casa",
       descripcion: "Cultiva frescura y sabor paso a paso desde tu hogar",
-      url: "https://drive.google.com/file/d/1Thkh_bS0exqSgTBp_JFG7Q5MRBNErNpH/view?usp=sharing"
+      storage_path: "basico/tu-huerto-en-casa.pdf"
     }
   ]
 };
@@ -1791,12 +1793,20 @@ app.get("/materiales-disponibles", async (req, res) => {
     const materialBasicoUsado = user.material_basico_usado === true;
     const disponible = activo && !materialBasicoUsado;
 
+    const opcionesPublicas = disponible
+      ? (CATALOGO_MATERIAL.basico || []).map(item => ({
+          id: item.id,
+          titulo: item.titulo,
+          descripcion: item.descripcion
+        }))
+      : [];
+
     return res.json({
       email: user.email,
       nivel_disponible: disponible ? "basico" : null,
       descarga_usada: { basico: materialBasicoUsado },
       material_seleccionado: { basico: user.material_basico_id || null },
-      opciones: disponible ? (CATALOGO_MATERIAL.basico || []) : []
+      opciones: opcionesPublicas
     });
   } catch (error) {
     return res.status(500).json({
@@ -1807,7 +1817,7 @@ app.get("/materiales-disponibles", async (req, res) => {
 });
 
 /* =========================
-   ELEGIR MATERIAL (SOLO BÁSICO)
+   ELEGIR MATERIAL (SOLO BASICO)
 ========================= */
 app.post("/elegir-material", async (req, res) => {
   try {
@@ -1844,7 +1854,22 @@ app.post("/elegir-material", async (req, res) => {
 
     const material = (CATALOGO_MATERIAL.basico || []).find(item => item.id === material_id);
     if (!material) {
-      return res.status(404).json({ error: "Material no encontrado en catálogo básico" });
+      return res.status(404).json({ error: "Material no encontrado en catalogo basico" });
+    }
+
+    if (!material.storage_path) {
+      return res.status(500).json({ error: "El material no tiene ruta protegida configurada" });
+    }
+
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from(BUCKET_MATERIAL)
+      .createSignedUrl(material.storage_path, 120);
+
+    if (signedError || !signedData?.signedUrl) {
+      return res.status(500).json({
+        error: "No se pudo generar acceso temporal al material",
+        detalle: signedError?.message || "Sin URL firmada"
+      });
     }
 
     const { error: updateError } = await supabase
@@ -1857,16 +1882,27 @@ app.post("/elegir-material", async (req, res) => {
       .eq("email", email);
 
     if (updateError) {
-      return res.status(500).json({ error: "Error guardando material", detalle: updateError.message });
+      return res.status(500).json({
+        error: "Error guardando material",
+        detalle: updateError.message
+      });
     }
 
     return res.json({
-      message: "Material básico seleccionado correctamente",
+      message: "Material basico seleccionado correctamente",
       tipo_material: "basico",
-      material
+      material: {
+        id: material.id,
+        titulo: material.titulo,
+        descripcion: material.descripcion,
+        url: signedData.signedUrl
+      }
     });
   } catch (error) {
-    return res.status(500).json({ error: "Error seleccionando material", detalle: error.message });
+    return res.status(500).json({
+      error: "Error seleccionando material",
+      detalle: error.message
+    });
   }
 });
 
@@ -2821,62 +2857,6 @@ app.post("/confirmar-otp-retiro", async (req, res) => {
     console.error("❌ Error en /confirmar-otp-retiro:", error.message);
     return res.status(500).json({
       error: "Error confirmando retiro",
-      detalle: error.message
-    });
-  }
-});
-
-/* =========================
-   CAMBIAR EMAIL AUTH + TABLA (TEMPORAL PRUEBA)
-========================= */
-app.post("/admin/cambiar-email-auth-prueba", async (req, res) => {
-  try {
-    const { user_id, email_nuevo } = req.body;
-
-    if (!user_id || !email_nuevo) {
-      return res.status(400).json({ error: "Faltan datos" });
-    }
-
-    const email = String(email_nuevo).trim().toLowerCase();
-
-    // 1) cambiar email en AUTH
-    const { data, error } = await supabase.auth.admin.updateUserById(user_id, {
-      email,
-      email_confirm: true
-    });
-
-    if (error) {
-      return res.status(500).json({
-        error: "Error actualizando email en Auth",
-        detalle: error.message
-      });
-    }
-
-    // 2) cambiar email en usuarios_1x3
-    const { error: errorTabla } = await supabase
-      .from("usuarios_1x3")
-      .update({ email })
-      .eq("user_id", user_id);
-
-    if (errorTabla) {
-      return res.status(500).json({
-        error: "Auth actualizado, pero falló usuarios_1x3",
-        detalle: errorTabla.message
-      });
-    }
-
-    return res.json({
-      ok: true,
-      message: "Correo actualizado correctamente en Auth y usuarios_1x3",
-      user_id,
-      email,
-      auth_user: data?.user || null
-    });
-
-  } catch (error) {
-    console.error("❌ Error en /admin/cambiar-email-auth-prueba:", error.message);
-    return res.status(500).json({
-      error: "Error cambiando correo de prueba",
       detalle: error.message
     });
   }
