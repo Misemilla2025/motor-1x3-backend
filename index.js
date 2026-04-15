@@ -1061,6 +1061,28 @@ app.post("/reportar-pago", async (req, res) => {
     // =========================
     // BLOQUEO POR INTENTOS
     // =========================
+    // Si el bloqueo ya vencio, reiniciamos contador y desbloqueamos
+    if (
+      user.bloqueado_hasta &&
+      new Date(user.bloqueado_hasta).getTime() <= ahora
+    ) {
+      const { error: errorResetBloqueo } = await supabase
+        .from("usuarios_1x3")
+        .update({
+          intentos_validacion: 0,
+          bloqueado_hasta: null
+        })
+        .eq("email", email);
+
+      if (errorResetBloqueo) {
+        console.log("⚠️ Error reseteando bloqueo vencido:", errorResetBloqueo.message);
+      } else {
+        user.intentos_validacion = 0;
+        user.bloqueado_hasta = null;
+      }
+    }
+
+    // Si el bloqueo sigue vigente, impedir validacion
     if (
       user.bloqueado_hasta &&
       new Date(user.bloqueado_hasta).getTime() > ahora
