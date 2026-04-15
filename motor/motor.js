@@ -1,9 +1,19 @@
 const { createClient } = require("@supabase/supabase-js");
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SECRET_KEY;
+
+if (!supabaseUrl) {
+  throw new Error("SUPABASE_URL is required.");
+}
+
+if (!supabaseKey) {
+  throw new Error("SUPABASE_SERVICE_ROLE_KEY o SUPABASE_SECRET_KEY is required.");
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 /* =========================
    OBTENER SIGUIENTE ORDEN
