@@ -18,6 +18,8 @@ const path = require("path");
 
 const crypto = require("crypto");
 
+
+
 app.use(express.static(path.join(__dirname, "public")));
 
 
@@ -2364,12 +2366,25 @@ function hashOTP(codigo) {
 }
 
 async function enviarCorreoOtpRetiro(destinatario, codigo, monto, walletDestino, red) {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  const from = process.env.OTP_FROM_EMAIL || "administracion@misemilla.org";
+  const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
+  const port = Number(process.env.SMTP_PORT || 587);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.OTP_FROM_EMAIL || "comunidad@misemilla.com";
 
-  if (!apiKey) {
-    throw new Error("Falta SENDGRID_API_KEY en .env");
+  if (!user || !pass) {
+    throw new Error("Faltan SMTP_USER o SMTP_PASS en .env");
   }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: false, // para 587
+    auth: {
+      user,
+      pass
+    }
+  });
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222;">
@@ -2402,35 +2417,15 @@ async function enviarCorreoOtpRetiro(destinatario, codigo, monto, walletDestino,
     </div>
   `;
 
-  const resp = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      personalizations: [
-        {
-          to: [{ email: destinatario }],
-          subject: "Código OTP para retiro - Mi Semilla"
-        }
-      ],
-      from: {
-        email: from,
-        name: "Mi Semilla"
-      },
-      content: [
-        {
-          type: "text/html",
-          value: html
-        }
-      ]
-    })
+  const info = await transporter.sendMail({
+    from: `"Mi Semilla" <${from}>`,
+    to: destinatario,
+    subject: "Código OTP para retiro - Mi Semilla",
+    html
   });
 
-  if (!resp.ok) {
-    const detalle = await resp.text();
-    throw new Error(`SendGrid error: ${resp.status} - ${detalle}`);
+  if (!info || !info.messageId) {
+    throw new Error("No se pudo confirmar el envío del correo OTP");
   }
 }
 
