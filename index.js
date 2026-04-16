@@ -2377,14 +2377,17 @@ async function enviarCorreoOtpRetiro(destinatario, codigo, monto, walletDestino,
   }
 
   const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: false, // para 587
-    auth: {
-      user,
-      pass
-    }
-  });
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 2525),
+  secure: Number(process.env.SMTP_PORT) === 465,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  },
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 20000
+});
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222;">
@@ -2416,6 +2419,14 @@ async function enviarCorreoOtpRetiro(destinatario, codigo, monto, walletDestino,
       <p>Si no solicitaste este retiro, ignora este correo.</p>
     </div>
   `;
+
+console.log("SMTP HOST:", process.env.SMTP_HOST);
+console.log("SMTP PORT:", process.env.SMTP_PORT);
+console.log("SMTP USER:", process.env.SMTP_USER);
+console.log("OTP_FROM_EMAIL:", process.env.OTP_FROM_EMAIL);
+
+await transporter.verify();
+console.log("✅ SMTP verificado correctamente");
 
   const info = await transporter.sendMail({
     from: `"Mi Semilla" <${from}>`,
