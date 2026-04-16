@@ -2366,28 +2366,12 @@ function hashOTP(codigo) {
 }
 
 async function enviarCorreoOtpRetiro(destinatario, codigo, monto, walletDestino, red) {
-  const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const apiKey = process.env.BREVO_API_KEY;
   const from = process.env.OTP_FROM_EMAIL || "comunidad@misemilla.com";
 
-  if (!user || !pass) {
-    throw new Error("Faltan SMTP_USER o SMTP_PASS en .env");
+  if (!apiKey) {
+    throw new Error("Falta BREVO_API_KEY en .env");
   }
-
-  const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 2525),
-  secure: Number(process.env.SMTP_PORT) === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  },
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 20000
-});
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222;">
@@ -2395,7 +2379,7 @@ async function enviarCorreoOtpRetiro(destinatario, codigo, monto, walletDestino,
       <p>Hemos recibido una solicitud de retiro con estos datos:</p>
 
       <ul>
-        <li><strong>Monto:</strong> $${monto}</li>
+        <li><strong>Monto:</strong> ${monto} USDT</li>
         <li><strong>Red:</strong> ${red}</li>
         <li><strong>Billetera destino:</strong> ${walletDestino}</li>
       </ul>
@@ -2420,24 +2404,47 @@ async function enviarCorreoOtpRetiro(destinatario, codigo, monto, walletDestino,
     </div>
   `;
 
-console.log("SMTP HOST:", process.env.SMTP_HOST);
-console.log("SMTP PORT:", process.env.SMTP_PORT);
-console.log("SMTP USER:", process.env.SMTP_USER);
-console.log("OTP_FROM_EMAIL:", process.env.OTP_FROM_EMAIL);
+  console.log("BREVO API -> from:", from);
+  console.log("BREVO API -> to:", destinatario);
 
-await transporter.verify();
-console.log("✅ SMTP verificado correctamente");
-
-  const info = await transporter.sendMail({
-    from: `"Mi Semilla" <${from}>`,
-    to: destinatario,
-    subject: "Código OTP para retiro - Mi Semilla",
-    html
+  const resp = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      sender: {
+        name: "Mi Semilla",
+        email: from
+      },
+      to: [
+        { email: destinatario }
+      ],
+      subject: "Código OTP para retiro - Mi Semilla",
+      htmlContent: html
+    })
   });
 
-  if (!info || !info.messageId) {
-    throw new Error("No se pudo confirmar el envío del correo OTP");
+  const raw = await resp.text();
+  console.log("BREVO status:", resp.status);
+  console.log("BREVO body:", raw);
+
+  if (!resp.ok) {
+    throw new Error(`Brevo API error: ${resp.status} - ${raw}`);
   }
+
+  let data = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch (_) {}
+
+  if (!data.messageId) {
+    throw new Error("Brevo no devolvió messageId");
+  }
+
+  console.log("✅ OTP retiro enviado por Brevo API:", data.messageId);
 }
 
 function obtenerVentanaDiaBogota() {
