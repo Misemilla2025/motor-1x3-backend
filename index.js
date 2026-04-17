@@ -2687,48 +2687,59 @@ app.post("/solicitar-otp-retiro", async (req, res) => {
 CONFIRMAR OTP RETIRO
 ========================= */
 app.post("/confirmar-otp-retiro", async (req, res) => {
-try {
-const authInfo = await getUsuarioAutenticado(req);
+  try {
+    console.log("📥 ENTRÓ A /confirmar-otp-retiro");
+    const authInfo = await getUsuarioAutenticado(req);
+    console.log("👤 authInfo.user?.email:", authInfo?.user?.email);
 
-if (authInfo.error || !authInfo.user) {  
-  return res.status(401).json({ error: "Sesion no valida" });  
-}  
+    if (authInfo.error || !authInfo.user) {
+      return res.status(401).json({ error: "Sesion no valida" });
+    }
 
-const email = String(authInfo.user.email || "").trim().toLowerCase();  
-const { codigo } = req.body;  
+    const email = String(authInfo.user.email || "").trim().toLowerCase();
+    const { codigo } = req.body;
 
-if (!email || !codigo) {  
-  return res.status(400).json({ error: "Faltan datos" });  
-}  
+    console.log("📧 email:", email);
+    console.log("🔐 codigo recibido:", codigo);
 
-if (!/^\d{6}$/.test(String(codigo))) {  
-  return res.status(400).json({ error: "El código OTP debe tener 6 dígitos" });  
-}  
+    if (!email || !codigo) {
+      return res.status(400).json({ error: "Faltan datos" });
+    }
 
-const ahoraIso = new Date().toISOString();  
-const codigoHash = hashOTP(codigo);  
+    if (!/^\d{6}$/.test(String(codigo))) {
+      return res.status(400).json({ error: "El código OTP debe tener 6 dígitos" });
+    }
 
-const { data: otp, error: errorOtp } = await supabase  
-  .from("otp_operaciones_1x3")  
-  .select("*")  
-  .eq("email", email)  
-  .eq("tipo", "retiro")  
-  .eq("estado", "pendiente")  
-  .order("creado_en", { ascending: false })  
-  .limit(1)  
-  .maybeSingle();  
+    const ahoraIso = new Date().toISOString();
+    const codigoHash = hashOTP(codigo);
 
-if (errorOtp) {  
-  return res.status(500).json({  
-    error: "Error consultando OTP",  
-    detalle: errorOtp.message  
-  });  
-}  
+    console.log("🕒 ahoraIso:", ahoraIso);
+    console.log("🔒 codigoHash:", codigoHash);
 
-if (!otp) {  
-  return res.status(404).json({ error: "No hay un OTP pendiente para este retiro" });  
-}  
+    const { data: otp, error: errorOtp } = await supabase
+      .from("otp_operaciones_1x3")
+      .select("*")
+      .eq("email", email)
+      .eq("tipo", "retiro")
+      .eq("estado", "pendiente")
+      .order("creado_en", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
+    console.log("📦 OTP encontrado:", otp);
+    console.log("⚠️ errorOtp:", errorOtp);
+
+    if (errorOtp) {
+      return res.status(500).json({
+        error: "Error consultando OTP",
+        detalle: errorOtp.message
+      });
+    }
+
+    if (!otp) {
+      return res.status(404).json({ error: "No hay un OTP pendiente para este retiro" });
+    }
+ 
 if (otp.bloqueado_hasta && otp.bloqueado_hasta > ahoraIso) {  
   return res.status(403).json({ error: "OTP bloqueado temporalmente. Intenta más tarde." });  
 }  
