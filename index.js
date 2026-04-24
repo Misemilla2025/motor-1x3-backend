@@ -2507,13 +2507,13 @@ app.post("/solicitar-otp-retiro", async (req, res) => {
     const email = String(authInfo.user.email || "").trim().toLowerCase();
     const { wallet_destino, monto_solicitado } = req.body;
 
-const montoSolicitadoNumero = Number(monto_solicitado);
+    const montoSolicitadoNumero = Number(monto_solicitado);
 
-if (montoSolicitadoNumero !== 15) {
-  return res.status(400).json({
-    error: "Por ahora solo está habilitado el retiro de 15 USDT."
-  });
-}
+    if (montoSolicitadoNumero !== 15) {
+      return res.status(400).json({
+        error: "Por ahora solo está habilitado el retiro de 15 USDT."
+      });
+    }
 
     if (!email || !wallet_destino || monto_solicitado === undefined || monto_solicitado === null) {
       return res.status(400).json({ error: "Faltan datos" });
@@ -2521,23 +2521,15 @@ if (montoSolicitadoNumero !== 15) {
 
     const wallet = String(wallet_destino).trim();
     const red = "BEP20";
-    const montoSolicitado = Number(monto_solicitado);
+    const montoFinal = 15;
 
     if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
       return res.status(400).json({ error: "La billetera no es válida para red BEP20" });
     }
 
-    if (!montoSolicitado || isNaN(montoSolicitado)) {
-      return res.status(400).json({ error: "El monto solicitado no es válido" });
-    }
-
-    if (montoSolicitado < 15) {
-  return res.status(400).json({ error: "El monto mínimo de retiro es 15 USDT" });
-}
-
     const { data: usuario, error: errorUsuario } = await supabase
       .from("usuarios_1x3")
-      .select("user_id, email, saldo_disponible_retiro, decision_pendiente, estado")
+      .select("user_id, email, estado, decision_pendiente, reintegro_reestructuracion")
       .eq("email", email)
       .maybeSingle();
 
@@ -2556,22 +2548,52 @@ if (montoSolicitadoNumero !== 15) {
       return res.status(400).json({ error: "El usuario no está activo" });
     }
 
-    if (usuario.decision_pendiente === true) {
+    if (usuario.reintegro_reestructuracion === true) {
       return res.status(400).json({
-        error: "Este usuario tiene una decisión pendiente de ciclo grande. Debe resolverla antes de retirar."
+        error: "Esta cuenta ya realizó un retiro anteriormente."
       });
     }
 
-    const saldoDisponible = Number(usuario.saldo_disponible_retiro || 0);
-    const maximoPermitido = saldoDisponible;
+    const { data: retiroPrevio, error: errorRetiroPrevio } = await supabase
+      .from("historial_1x3")
+      .select("id")
+      .eq("email", email)
+      .eq("tipo", "retiro_confirmado")
+      .limit(1)
+      .maybeSingle();
 
-    if (saldoDisponible <= 0) {
-      return res.status(400).json({ error: "No hay saldo disponible para retiro" });
+    if (errorRetiroPrevio) {
+      return res.status(500).json({
+        error: "Error validando retiros previos",
+        detalle: errorRetiroPrevio.message
+      });
     }
 
-    if (montoSolicitado > maximoPermitido) {
+    if (retiroPrevio) {
       return res.status(400).json({
-        error: `El monto máximo permitido para este retiro es $${maximoPermitido} USDT`
+        error: "Esta cuenta ya realizó un retiro anteriormente."
+      });
+    }
+
+    const { data: pagoConfirmado, error: errorPagoConfirmado } = await supabase
+      .from("pagos_verificados")
+      .select("id, monto, usado")
+      .eq("correo", email)
+      .eq("usado", true)
+      .gte("monto", 15)
+      .limit(1)
+      .maybeSingle();
+
+    if (errorPagoConfirmado) {
+      return res.status(500).json({
+        error: "Error validando aporte confirmado",
+        detalle: errorPagoConfirmado.message
+      });
+    }
+
+    if (!pagoConfirmado) {
+      return res.status(400).json({
+        error: "No se encontró un aporte confirmado para reintegro."
       });
     }
 
@@ -2646,8 +2668,6 @@ if (montoSolicitadoNumero !== 15) {
     const codigoHash = hashOTP(codigo);
     const expiraEn = new Date(Date.now() + 3 * 60 * 1000).toISOString();
 
-    const montoFinal = 15;
-
     const { error: errorInsertOtp } = await supabase
       .from("otp_operaciones_1x3")
       .insert([{
@@ -2664,9 +2684,9 @@ if (montoSolicitadoNumero !== 15) {
         wallet_destino: wallet,
         red,
         metadata: {
-          origen: "panel_1x3",
-          retiro_diario: true,
-          retiro_maximo: saldoDisponible
+          origen: "reestructuracion",
+          reintegro: true,
+          monto_fijo: 15
         }
       }]);
 
@@ -2702,8 +2722,8 @@ CONFIRMAR OTP RETIRO
 app.post("/confirmar-otp-retiro", async (req, res) => {
   try {
     console.log("📥 ENTRÓ A /confirmar-otp-retiro");
+
     const authInfo = await getUsuarioAutenticado(req);
-    console.log("👤 authInfo.user?.email:", authInfo?.user?.email);
 
     if (authInfo.error || !authInfo.user) {
       return res.status(401).json({ error: "Sesion no valida" });
@@ -2711,9 +2731,6 @@ app.post("/confirmar-otp-retiro", async (req, res) => {
 
     const email = String(authInfo.user.email || "").trim().toLowerCase();
     const { codigo } = req.body;
-
-    console.log("📧 email:", email);
-    console.log("🔐 codigo recibido:", codigo);
 
     if (!email || !codigo) {
       return res.status(400).json({ error: "Faltan datos" });
@@ -2726,9 +2743,6 @@ app.post("/confirmar-otp-retiro", async (req, res) => {
     const ahoraIso = new Date().toISOString();
     const codigoHash = hashOTP(codigo);
 
-    console.log("🕒 ahoraIso:", ahoraIso);
-    console.log("🔒 codigoHash:", codigoHash);
-
     const { data: otp, error: errorOtp } = await supabase
       .from("otp_operaciones_1x3")
       .select("*")
@@ -2738,9 +2752,6 @@ app.post("/confirmar-otp-retiro", async (req, res) => {
       .order("creado_en", { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    console.log("📦 OTP encontrado:", otp);
-    console.log("⚠️ errorOtp:", errorOtp);
 
     if (errorOtp) {
       return res.status(500).json({
@@ -2752,175 +2763,218 @@ app.post("/confirmar-otp-retiro", async (req, res) => {
     if (!otp) {
       return res.status(404).json({ error: "No hay un OTP pendiente para este retiro" });
     }
- 
-if (otp.bloqueado_hasta && otp.bloqueado_hasta > ahoraIso) {  
-  return res.status(403).json({ error: "OTP bloqueado temporalmente. Intenta más tarde." });  
-}  
 
-if (otp.expira_en && otp.expira_en < ahoraIso) {  
-  await supabase  
-    .from("otp_operaciones_1x3")  
-    .update({ estado: "expirado" })  
-    .eq("id", otp.id);  
+    if (otp.bloqueado_hasta && otp.bloqueado_hasta > ahoraIso) {
+      return res.status(403).json({ error: "OTP bloqueado temporalmente. Intenta más tarde." });
+    }
 
-  return res.status(400).json({ error: "El código OTP ya expiró" });  
-}  
+    if (otp.expira_en && otp.expira_en < ahoraIso) {
+      await supabase
+        .from("otp_operaciones_1x3")
+        .update({ estado: "expirado" })
+        .eq("id", otp.id);
 
-if (otp.codigo_hash !== codigoHash) {  
-  const nuevosIntentos = Number(otp.intentos || 0) + 1;  
-  const maxIntentos = Number(otp.max_intentos || 5);  
+      return res.status(400).json({ error: "El código OTP ya expiró" });
+    }
 
-  const updateData = { intentos: nuevosIntentos };  
+    if (otp.codigo_hash !== codigoHash) {
+      const nuevosIntentos = Number(otp.intentos || 0) + 1;
+      const maxIntentos = Number(otp.max_intentos || 5);
 
-  if (nuevosIntentos >= maxIntentos) {  
-    updateData.estado = "bloqueado";  
-    updateData.bloqueado_hasta = new Date(Date.now() + 30 * 60 * 1000).toISOString();  
-  }  
+      const updateData = { intentos: nuevosIntentos };
 
-  await supabase  
-    .from("otp_operaciones_1x3")  
-    .update(updateData)  
-    .eq("id", otp.id);  
+      if (nuevosIntentos >= maxIntentos) {
+        updateData.estado = "bloqueado";
+        updateData.bloqueado_hasta = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      }
 
-  return res.status(nuevosIntentos >= maxIntentos ? 403 : 400).json({  
-    error: nuevosIntentos >= maxIntentos  
-      ? "Demasiados intentos fallidos. OTP bloqueado temporalmente."  
-      : "Código OTP incorrecto"  
-  });  
-}  
+      await supabase
+        .from("otp_operaciones_1x3")
+        .update(updateData)
+        .eq("id", otp.id);
 
-const montoRetiro = Number(otp.monto || 0);  
+      return res.status(nuevosIntentos >= maxIntentos ? 403 : 400).json({
+        error: nuevosIntentos >= maxIntentos
+          ? "Demasiados intentos fallidos. OTP bloqueado temporalmente."
+          : "Código OTP incorrecto"
+      });
+    }
 
-if (montoRetiro !== 15) {
-  return res.status(400).json({ error: "Por ahora solo está habilitado el retiro de 15 USDT." });
-}  
+    const montoRetiro = Number(otp.monto || 0);
 
-const { data: usuario, error: errorUsuario } = await supabase  
-  .from("usuarios_1x3")  
-  .select("user_id, email, estado, saldo_disponible_retiro, saldo_retenido, total_retirado")  
-  .eq("email", email)  
-  .maybeSingle();  
+    if (montoRetiro !== 15) {
+      return res.status(400).json({
+        error: "Por ahora solo está habilitado el retiro de 15 USDT."
+      });
+    }
 
-if (errorUsuario) {  
-  return res.status(500).json({  
-    error: "Error consultando usuario",  
-    detalle: errorUsuario.message  
-  });  
-}  
+    const { data: usuario, error: errorUsuario } = await supabase
+      .from("usuarios_1x3")
+      .select("user_id, email, estado, saldo_disponible_retiro, saldo_retenido, total_retirado, reintegro_reestructuracion")
+      .eq("email", email)
+      .maybeSingle();
 
-if (!usuario) {  
-  return res.status(404).json({ error: "Usuario no encontrado" });  
-}  
+    if (errorUsuario) {
+      return res.status(500).json({
+        error: "Error consultando usuario",
+        detalle: errorUsuario.message
+      });
+    }
 
-if (usuario.estado !== "ACTIVO") {  
-  return res.status(400).json({ error: "El usuario no está activo" });  
-}  
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
 
-const yaRetiroHoy = await usuarioYaRetiroHoy(usuario.user_id);  
+    if (usuario.estado !== "ACTIVO") {
+      return res.status(400).json({ error: "El usuario no está activo" });
+    }
 
-if (yaRetiroHoy) {  
-  return res.status(400).json({  
-    error: "Ya realizaste un retiro hoy. Intenta nuevamente mañana."  
-  });  
-}  
+    if (usuario.reintegro_reestructuracion === true) {
+      return res.status(400).json({
+        error: "Esta cuenta ya realizó un retiro anteriormente."
+      });
+    }
 
-const saldoDisponible = Number(usuario.saldo_disponible_retiro || 0);  
-const saldoRetenido = Number(usuario.saldo_retenido || 0);  
-const totalRetiradoActual = Number(usuario.total_retirado || 0);  
-const maximoPermitidoActual = saldoDisponible;  
+    const { data: retiroPrevio, error: errorRetiroPrevio } = await supabase
+      .from("historial_1x3")
+      .select("id")
+      .eq("email", email)
+      .eq("tipo", "retiro_confirmado")
+      .limit(1)
+      .maybeSingle();
 
-if (saldoDisponible <= 0) {  
-  return res.status(400).json({ error: "No hay saldo disponible para retiro" });  
-}  
+    if (errorRetiroPrevio) {
+      return res.status(500).json({
+        error: "Error validando retiros previos",
+        detalle: errorRetiroPrevio.message
+      });
+    }
 
-if (montoRetiro > maximoPermitidoActual) {  
-  return res.status(400).json({  
-    error: `El monto ya no es válido. Máximo permitido actual: $${maximoPermitidoActual}`  
-  });  
-}  
+    if (retiroPrevio) {
+      return res.status(400).json({
+        error: "Esta cuenta ya realizó un retiro anteriormente."
+      });
+    }
 
-if (!otp.wallet_destino || !/^0x[a-fA-F0-9]{40}$/.test(String(otp.wallet_destino))) {  
-  return res.status(400).json({ error: "La billetera destino guardada no es válida" });  
-}  
+    const { data: pagoConfirmado, error: errorPagoConfirmado } = await supabase
+      .from("pagos_verificados")
+      .select("id, monto, usado")
+      .eq("correo", email)
+      .eq("usado", true)
+      .gte("monto", 15)
+      .limit(1)
+      .maybeSingle();
 
-const decimals = await contratoUSDT.decimals();  
-const amount = ethers.parseUnits(String(montoRetiro), decimals);  
+    if (errorPagoConfirmado) {
+      return res.status(500).json({
+        error: "Error validando aporte confirmado",
+        detalle: errorPagoConfirmado.message
+      });
+    }
 
-const tx = await contratoUSDT.transfer(String(otp.wallet_destino), amount);  
-await tx.wait();  
+    if (!pagoConfirmado) {
+      return res.status(400).json({
+        error: "No se encontró un aporte confirmado para reintegro."
+      });
+    }
 
-const nuevoSaldoDisponible = Number((saldoDisponible - montoRetiro).toFixed(2));  
-const nuevoSaldoRetenido = Number(Math.max(0, saldoRetenido - montoRetiro).toFixed(2));  
-const nuevoTotalRetirado = Number((totalRetiradoActual + montoRetiro).toFixed(2));  
+    const yaRetiroHoy = await usuarioYaRetiroHoy(usuario.user_id);
 
-const { error: errorUpdateUsuario } = await supabase  
-  .from("usuarios_1x3")  
-  .update({  
-    saldo_disponible_retiro: nuevoSaldoDisponible,  
-    saldo_retenido: nuevoSaldoRetenido,  
-    total_retirado: nuevoTotalRetirado  
-  })  
-  .eq("email", email);  
+    if (yaRetiroHoy) {
+      return res.status(400).json({
+        error: "Ya realizaste un retiro hoy. Intenta nuevamente mañana."
+      });
+    }
 
-if (errorUpdateUsuario) {  
-  return res.status(500).json({  
-    error: "Error actualizando saldo tras retiro",  
-    detalle: errorUpdateUsuario.message  
-  });  
-}  
+    if (!otp.wallet_destino || !/^0x[a-fA-F0-9]{40}$/.test(String(otp.wallet_destino))) {
+      return res.status(400).json({ error: "La billetera destino guardada no es válida" });
+    }
 
-const { error: errorUpdateOtp } = await supabase  
-  .from("otp_operaciones_1x3")  
-  .update({  
-    estado: "usado"  
-  })  
-  .eq("id", otp.id);  
+    const decimals = await contratoUSDT.decimals();
+    const amount = ethers.parseUnits(String(montoRetiro), decimals);
 
-if (errorUpdateOtp) {  
-  return res.status(500).json({  
-    error: "Error marcando OTP como usado",  
-    detalle: errorUpdateOtp.message  
-  });  
-}  
+    const tx = await contratoUSDT.transfer(String(otp.wallet_destino), amount);
+    await tx.wait();
 
-const { error: errorHistorial } = await supabase  
-  .from("historial_1x3")  
-  .insert([{  
-    user_id: usuario.user_id,  
-    email,  
-    tipo: "retiro_confirmado",  
-    detalle: {  
-      monto: montoRetiro,  
-      red: otp.red || "BEP20",  
-      wallet_destino: otp.wallet_destino,  
-      txid: tx.hash,  
-      otp_id: otp.id  
-    },  
-    fecha: new Date().toISOString()  
-  }]);  
+    const saldoDisponible = Number(usuario.saldo_disponible_retiro || 0);
+    const saldoRetenido = Number(usuario.saldo_retenido || 0);
+    const totalRetiradoActual = Number(usuario.total_retirado || 0);
 
-if (errorHistorial) {  
-  console.log("⚠️ Error guardando historial de retiro:", errorHistorial.message);  
-}  
+    const nuevoSaldoDisponible = Number(Math.max(0, saldoDisponible - montoRetiro).toFixed(2));
+    const nuevoSaldoRetenido = Number(Math.max(0, saldoRetenido - montoRetiro).toFixed(2));
+    const nuevoTotalRetirado = Number((totalRetiradoActual + montoRetiro).toFixed(2));
 
-return res.json({  
-  ok: true,  
-  message: `Retiro confirmado y enviado correctamente. TXID: ${tx.hash}`,  
-  txid: tx.hash,  
-  monto: montoRetiro,  
-  wallet_destino: otp.wallet_destino,  
-  red: otp.red || "BEP20"  
+    const { error: errorUpdateUsuario } = await supabase
+      .from("usuarios_1x3")
+      .update({
+        saldo_disponible_retiro: nuevoSaldoDisponible,
+        saldo_retenido: nuevoSaldoRetenido,
+        total_retirado: nuevoTotalRetirado,
+        reintegro_reestructuracion: true
+      })
+      .eq("email", email);
+
+    if (errorUpdateUsuario) {
+      return res.status(500).json({
+        error: "Error actualizando saldo tras retiro",
+        detalle: errorUpdateUsuario.message
+      });
+    }
+
+    const { error: errorUpdateOtp } = await supabase
+      .from("otp_operaciones_1x3")
+      .update({
+        estado: "usado"
+      })
+      .eq("id", otp.id);
+
+    if (errorUpdateOtp) {
+      return res.status(500).json({
+        error: "Error marcando OTP como usado",
+        detalle: errorUpdateOtp.message
+      });
+    }
+
+    const { error: errorHistorial } = await supabase
+      .from("historial_1x3")
+      .insert([{
+        user_id: usuario.user_id,
+        email,
+        tipo: "retiro_confirmado",
+        detalle: {
+          monto: montoRetiro,
+          red: otp.red || "BEP20",
+          wallet_destino: otp.wallet_destino,
+          txid: tx.hash,
+          otp_id: otp.id,
+          origen: "reestructuracion"
+        },
+        fecha: new Date().toISOString()
+      }]);
+
+    if (errorHistorial) {
+      console.log("⚠️ Error guardando historial de retiro:", errorHistorial.message);
+    }
+
+    return res.json({
+      ok: true,
+      message: `Retiro confirmado y enviado correctamente. TXID: ${tx.hash}`,
+      txid: tx.hash,
+      monto: montoRetiro,
+      wallet_destino: otp.wallet_destino,
+      red: otp.red || "BEP20"
+    });
+
+  } catch (error) {
+    console.error("❌ Error en /confirmar-otp-retiro:", error.message);
+
+    return res.status(500).json({
+      error: "Error confirmando retiro",
+      detalle: error.message
+    });
+  }
 });
-
-} catch (error) {
-console.error("❌ Error en /confirmar-otp-retiro:", error.message);
-return res.status(500).json({
-error: "Error confirmando retiro",
-detalle: error.message
-});
-}
-});
-
+    
 /* =========================
    SERVER
 ========================= */
