@@ -324,6 +324,11 @@ app.post("/admin/reset", (req, res) => {
    REGISTRO - MODELO LIMPIO 1x3 (BLINDADO)
 ========================= */
 app.post("/registro", (req, res) => {
+
+return res.status(403).json({
+  error: "El registro está cerrado temporalmente. Pronto anunciaremos el nuevo enfoque educativo."
+});
+
   try {
     const { email, password } = req.body;
 
