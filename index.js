@@ -2507,6 +2507,14 @@ app.post("/solicitar-otp-retiro", async (req, res) => {
     const email = String(authInfo.user.email || "").trim().toLowerCase();
     const { wallet_destino, monto_solicitado } = req.body;
 
+const montoSolicitadoNumero = Number(monto_solicitado);
+
+if (montoSolicitadoNumero !== 15) {
+  return res.status(400).json({
+    error: "Por ahora solo está habilitado el retiro de 15 USDT."
+  });
+}
+
     if (!email || !wallet_destino || monto_solicitado === undefined || monto_solicitado === null) {
       return res.status(400).json({ error: "Faltan datos" });
     }
@@ -2524,8 +2532,8 @@ app.post("/solicitar-otp-retiro", async (req, res) => {
     }
 
     if (montoSolicitado < 15) {
-      return res.status(400).json({ error: "El monto mínimo de retiro es $15" });
-    }
+  return res.status(400).json({ error: "El monto mínimo de retiro es 15 USDT" });
+}
 
     const { data: usuario, error: errorUsuario } = await supabase
       .from("usuarios_1x3")
@@ -2563,7 +2571,7 @@ app.post("/solicitar-otp-retiro", async (req, res) => {
 
     if (montoSolicitado > maximoPermitido) {
       return res.status(400).json({
-        error: `El monto máximo permitido para este retiro es $${maximoPermitido}`
+        error: `El monto máximo permitido para este retiro es $${maximoPermitido} USDT`
       });
     }
 
@@ -2638,7 +2646,7 @@ app.post("/solicitar-otp-retiro", async (req, res) => {
     const codigoHash = hashOTP(codigo);
     const expiraEn = new Date(Date.now() + 3 * 60 * 1000).toISOString();
 
-    const montoFinal = Number(montoSolicitado.toFixed(2));
+    const montoFinal = 15;
 
     const { error: errorInsertOtp } = await supabase
       .from("otp_operaciones_1x3")
@@ -2783,8 +2791,8 @@ if (otp.codigo_hash !== codigoHash) {
 
 const montoRetiro = Number(otp.monto || 0);  
 
-if (montoRetiro < 15) {  
-  return res.status(400).json({ error: "El monto mínimo de retiro es $15" });  
+if (montoRetiro !== 15) {
+  return res.status(400).json({ error: "Por ahora solo está habilitado el retiro de 15 USDT." });
 }  
 
 const { data: usuario, error: errorUsuario } = await supabase  
