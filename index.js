@@ -2850,11 +2850,11 @@ app.post("/confirmar-otp-retiro", async (req, res) => {
       });
     }
 
-    if (retiroPrevio) {
-      return res.status(400).json({
-        error: "Esta cuenta ya realizó un retiro anteriormente."
-      });
-    }
+    if (retiroPrevio || Number(usuario.total_retirado || 0) > 0) {
+  return res.status(400).json({
+    error: "Esta cuenta ya realizó un retiro anteriormente."
+  });
+}
 
     const { data: pagoConfirmado, error: errorPagoConfirmado } = await supabase
       .from("pagos_verificados")
